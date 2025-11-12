@@ -1,0 +1,22 @@
+# === Backend (Python + FastAPI) ===
+
+# Ambiente Virtual
+# Ignora todos os pacotes Python instalados localmente
+/.venv
+/venv
+
+# Arquivos de Pesos do Modelo
+# Modelos treinados são grandes e não devem estar no Git.
+# É melhor hospedá-los em um serviço como o Google Drive ou S3.
+/model_weights/*.pth
+/model_weights/*.pt
+/model_weights
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Arquivos de IDE e Sistema
+.idea/
+.vscode/
+.DS_Store

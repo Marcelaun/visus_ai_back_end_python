@@ -4,12 +4,15 @@ from PIL import Image
 import io
 import logging
 import timm
-import cv2
 import numpy as np
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+from pathlib import Path
 
-MODEL_PATH = "model_weights/best_model.pth"
+# Configura o path correto (sobe um nível da pasta app/)
+BASE_DIR = Path(__file__).parent.parent
+MODEL_PATH = str(BASE_DIR / "model_weights" / "best_model.pth")
+
 DEVICE = torch.device("cpu") 
 CLASS_NAMES = ['Normal', 'RD Leve', 'RD Moderada', 'RD Severa', 'RD Proliferativa']
 GRAVIDADE = {
@@ -21,9 +24,9 @@ GRAVIDADE = {
 }
 logger = logging.getLogger(__name__)
 
-# Transformações IDÊNTICAS ao código de teste/treinamento (usando Albumentations)
+# Transformações IDÊNTICAS ao treinamento
 transforms_pipeline = A.Compose([
-    A.Resize(512, 512),  # Exatamente como no treinamento
+    A.Resize(512, 512),
     A.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ToTensorV2()
 ])
@@ -67,10 +70,9 @@ def load_model():
         logger.info(f"Carregando modelo de: {MODEL_PATH}")
         
         # 1. Cria a arquitetura do modelo SEM pesos pré-treinados
-        #    Isso é crucial! Queremos usar APENAS os pesos do seu treinamento
         model = EfficientNetB4_DR(
             num_classes=len(CLASS_NAMES),
-            pretrained=False,  # <-- NÃO carrega pesos do ImageNet!
+            pretrained=False,  # IMPORTANTE: Não carrega pesos do ImageNet!
             dropout_rate=0.3
         )
         
@@ -86,17 +88,16 @@ def load_model():
             state_dict = checkpoint
             logger.info("Usando checkpoint direto como state_dict")
 
-        # 4. Remove prefixo 'module.' se existir (caso tenha usado DataParallel)
+        # 4. Remove prefixo 'module.' se existir (DataParallel)
         if any(key.startswith('module.') for key in state_dict.keys()):
             logger.info("Removendo prefixo 'module.' de DataParallel...")
             state_dict = {k.replace('module.', '', 1): v for k, v in state_dict.items()}
 
         # 5. Carrega TODOS os pesos (backbone + classificador) com strict=True
-        #    Agora não há conflito porque o modelo foi criado sem pesos pré-treinados
         model.load_state_dict(state_dict, strict=True)
         logger.info("✅ State_dict carregado completamente (strict=True)")
         
-        # 6. Coloca em modo de avaliação
+        # 6. CRUCIAL: Coloca em modo de avaliação
         model.eval()
         model.to(DEVICE)
         
@@ -126,7 +127,7 @@ def predict_image(model, image_bytes):
     try:
         # 1. Carrega a imagem como array numpy (igual ao Colab)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        image_np = np.array(image)  # Converte para numpy array
+        image_np = np.array(image)
         
         # 2. Aplica as transformações do Albumentations
         transformed = transforms_pipeline(image=image_np)

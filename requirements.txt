@@ -1,12 +1,12 @@
-# --- Servidor da API ---
 fastapi
-uvicorn[standard]
+uvicorn
 python-multipart
-
-# --- IA & Processamento de Imagem ---
-torch
-timm
-albumentations
-opencv-python-headless
-Pillow
+pillow
 numpy
+albumentations
+timm
+torch
+torchvision
+torchaudio
+pydantic
+python-dotenv
